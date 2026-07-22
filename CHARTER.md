@@ -35,4 +35,6 @@
 
 ## 아님
 
-- twdo · 이도원/idowon · Tudo · Freemason 단체 · EXAONE 가중치
+- 표절·사칭 (전문 [`NOTICE.md`](./NOTICE.md))
+- twdo · 이도원/idowon (EXAONE 운율 회피)
+- Tudo · Freemason 단체 · EXAONE 가중치/소스 클론 · Huawei 창제 SDK 재배포
