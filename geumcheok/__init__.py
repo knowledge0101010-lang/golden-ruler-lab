@@ -1,0 +1,10 @@
+"""이도(Ido) 언어 · 금척(Golden Ruler / geumcheok) 랩 · 에이전트 2 degrees."""
+
+__version__ = "0.1.0"
+__brand_ko__ = "이도"
+__brand_en__ = "Ido"
+__brand_lab_ko__ = "금척"
+__brand_lab_en__ = "Golden Ruler"
+__package_name__ = "geumcheok"
+__agent__ = "2 degrees"
+__emblem__ = "nuwa-compass+fuxi-square+sejong-flame"

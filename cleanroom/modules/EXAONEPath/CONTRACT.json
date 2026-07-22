@@ -1,0 +1,34 @@
+{
+  "cleanroom_id": "cr/EXAONEPath",
+  "mirrors_public_role_of": "LG-AI-EXAONE/EXAONEPath",
+  "upstream_url": "https://github.com/LG-AI-EXAONE/EXAONEPath",
+  "upstream_stars": 23,
+  "upstream_language": "Python",
+  "bucket": "domain-pathology",
+  "ido_role": "index-only",
+  "kind": "index-card",
+  "purpose": "LG-AI-EXAONE/EXAONEPath public repository",
+  "adopt": "cleanroom-stub",
+  "copies_upstream_source": false,
+  "weights_forbidden": true,
+  "updated": "2026-07-22",
+  "engine_path": "engines/dispatch.py",
+  "title": "EXAONEPath",
+  "docs_read": {
+    "readme": "raw/EXAONEPath/README.md",
+    "readme_bytes": 6247,
+    "error": null
+  },
+  "cursor_grok": {
+    "identity": "Cursor Grok 4.5",
+    "default_host_language": "cangjie",
+    "mode": "cleanroom",
+    "never_claim": [
+      "EXAONE",
+      "LG AI",
+      "LG-AI-EXAONE"
+    ],
+    "ties_to": "vendor/claude-science/geumcheok (이도·twdo / 금척 / 2 degrees)"
+  },
+  "converted": "2026-07-22"
+}

@@ -1,0 +1,15 @@
+// 이도(Tudo)→Han 자동변환 (tudo translate --host han)
+// 이도 (Tudo) — .ido 예제 · 기본 호스트=cangjie
+// 키워드: 한국어 | 산술 기호는 C 유지
+
+함수 double(값: 정수): 정수 {
+    반환 값 * 2
+}
+
+메인() {
+    상수 name = "이도"
+    변수 score = 21
+    score = double(score)
+    출력("lang=${name}")
+    출력("score=${score}")
+}

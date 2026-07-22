@@ -1,0 +1,34 @@
+{
+  "cleanroom_id": "cr/KoMT-Bench",
+  "mirrors_public_role_of": "LG-AI-EXAONE/KoMT-Bench",
+  "upstream_url": "https://github.com/LG-AI-EXAONE/KoMT-Bench",
+  "upstream_stars": 73,
+  "upstream_language": "Python",
+  "bucket": "eval-bench",
+  "ido_role": "rubric-hint",
+  "kind": "eval-card",
+  "purpose": "Official repository for KoMT-Bench built by LG AI Research",
+  "adopt": "cleanroom-stub",
+  "copies_upstream_source": false,
+  "weights_forbidden": true,
+  "updated": "2026-07-22",
+  "engine_path": "engines/dispatch.py",
+  "title": "KoMT-Bench",
+  "docs_read": {
+    "readme": "raw/KoMT-Bench/README.md",
+    "readme_bytes": 6886,
+    "error": null
+  },
+  "cursor_grok": {
+    "identity": "Cursor Grok 4.5",
+    "default_host_language": "cangjie",
+    "mode": "cleanroom",
+    "never_claim": [
+      "EXAONE",
+      "LG AI",
+      "LG-AI-EXAONE"
+    ],
+    "ties_to": "vendor/claude-science/geumcheok (이도·twdo / 금척 / 2 degrees)"
+  },
+  "converted": "2026-07-22"
+}

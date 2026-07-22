@@ -1,0 +1,8 @@
+[package]
+  name = "smoke_cjpm"
+  version = "1.0.0"
+  output-type = "executable"
+  cjc-version = "1.0.5"
+
+[target]
+  [target.aot]

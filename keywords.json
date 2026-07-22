@@ -1,0 +1,77 @@
+{
+  "language": "ido",
+  "brand_ko": "이도",
+  "brand_en": "Ido",
+  "version": "0.1.0",
+  "extension": ".ido",
+  "to_cangjie": {
+    "기능": "func",
+    "불변": "let",
+    "가변": "var",
+    "구조": "struct",
+    "클래스": "class",
+    "열거": "enum",
+    "맞춤": "match",
+    "만약": "if",
+    "동안": "while",
+    "반복": "for",
+    "반환": "return",
+    "묶음": "package",
+    "포함": "import",
+    "사용": "import",
+    "규약": "interface",
+    "구현": "extend",
+    "출력": "println",
+    "메인": "main",
+    "정수": "Int64",
+    "문자열": "String",
+    "실수": "Float64",
+    "논리": "Bool",
+    "참": "true",
+    "거짓": "false",
+    "있음": "Some",
+    "없음값": "None",
+    "선택": "Option",
+    "결과": "Result",
+    "성공": "Ok",
+    "실패": "Err",
+    "이면": "",
+    "안에서": "in"
+  },
+  "to_han": {
+    "기능": "함수",
+    "불변": "상수",
+    "가변": "변수",
+    "묶음": "포함",
+    "사용": "포함",
+    "출력": "출력",
+    "메인": "메인",
+    "정수": "정수",
+    "문자열": "문자열"
+  },
+  "motif": {
+    "encykorea": "https://encykorea.aks.ac.kr/Article/E0029857",
+    "cangjie_docs": "https://docs.cangjie-lang.cn/",
+    "han": "https://github.com/xodn348/han",
+    "exaone_org": "https://github.com/orgs/LG-AI-EXAONE/repositories"
+  },
+  "emblem": {
+    "file": "emblem/2-degrees.svg",
+    "sources": [
+      "복희여와도",
+      "세종금척"
+    ],
+    "elements": {
+      "compass_규": "여와 — 하늘·조화·창조",
+      "square_자": "복희·세종 금척 — 땅·질서·제도",
+      "flame": "세종 화력 — 훈민정음·집현전"
+    },
+    "freemason_note": "문양 연상만. 원천=동양 신화+세종. 조직 소속 아님. 에이전트명 2 degrees ≈ 33° 은유."
+  },
+  "agent": "2 degrees",
+  "package": "geumcheok",
+  "naming_note": "이도→Ido (한국어 로마자, twdo 폐기). 금척→Golden Ruler (金尺; 세종 금척). 패키지 로마자 geumcheok.",
+  "brand_lab_ko": "금척",
+  "brand_lab_en": "Golden Ruler",
+  "brand_lab_romanization": "geumcheok"
+}

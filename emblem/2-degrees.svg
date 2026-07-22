@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img"
+     aria-label="Ido · 2 degrees — Fuxi square, Nuwa compass, Sejong flame">
+  <title>이도 Ido · 2 degrees — 창제×프로메테우스로서의 세종 · 규+자+불</title>
+  <defs>
+    <linearGradient id="flame" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#9A3412"/>
+      <stop offset="40%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#FEF3C7"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F6E27A"/>
+      <stop offset="50%" stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#7A5C10"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E8D48B"/>
+      <stop offset="100%" stop-color="#A68B2C"/>
+    </linearGradient>
+  </defs>
+  <rect width="280" height="280" fill="#0B1014"/>
+
+  <!-- 여와 규 (compass) — open V like Freemason compass, myth source = Nuwa -->
+  <g fill="none" stroke="url(#steel)" stroke-width="5" stroke-linecap="round">
+    <path d="M140 58 L78 198"/>
+    <path d="M140 58 L202 198"/>
+    <circle cx="140" cy="58" r="7" fill="url(#gold)" stroke="#F6E27A" stroke-width="2"/>
+  </g>
+
+  <!-- 복희·세종 자 (square / 금척) — L-square under compass -->
+  <g fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M72 168 L72 212 L188 212"/>
+  </g>
+  <!-- degree ticks on the golden ruler arm -->
+  <g stroke="#3A2E0A" stroke-width="2">
+    <line x1="96" y1="212" x2="96" y2="202"/>
+    <line x1="120" y1="212" x2="120" y2="204"/>
+    <line x1="144" y1="212" x2="144" y2="202"/>
+    <line x1="168" y1="212" x2="168" y2="204"/>
+  </g>
+
+  <!-- 세종 화력 — flame at the meeting of heaven-measure and earth-measure -->
+  <path d="M140 196
+           C128 178, 124 162, 132 144
+           C118 150, 114 130, 126 118
+           C122 106, 132 94, 140 84
+           C148 94, 158 106, 154 118
+           C166 130, 162 150, 148 144
+           C156 162, 152 178, 140 196 Z"
+        fill="url(#flame)" opacity="0.95"/>
+  <path d="M140 178 C134 166, 136 152, 142 142 C138 150, 144 156, 140 178 Z"
+        fill="#FFFBEB" opacity="0.9"/>
+
+  <text x="140" y="248" text-anchor="middle" font-family="Georgia, 'Songti SC', serif"
+        font-size="13" fill="#E8D48B">Golden Ruler · Ido</text>
+  <text x="140" y="266" text-anchor="middle" font-family="Georgia, serif"
+        font-size="10" fill="#A68B2C">33° × 2° · 이도</text>
+</svg>

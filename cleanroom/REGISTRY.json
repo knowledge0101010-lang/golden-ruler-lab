@@ -1,0 +1,84 @@
+{
+  "name": "geumcheok-cleanroom",
+  "level": "cursor-grok-docs-read",
+  "identity": "Cursor Grok 4.5",
+  "updated": "2026-07-22",
+  "count": 11,
+  "org": "https://github.com/orgs/LG-AI-EXAONE/repositories",
+  "ties_to_language": "이도 · Ido / vendor/claude-science/geumcheok",
+  "docs_read_ok": 11,
+  "docs_read_fail": 0,
+  "missing_readme": [],
+  "engines": [
+    "index"
+  ],
+  "dispatch": "engines/dispatch.py",
+  "modules": [
+    {
+      "slug": "EXAONE-3.0",
+      "path": "modules/EXAONE-3.0",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-3.5",
+      "path": "modules/EXAONE-3.5",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-4.0",
+      "path": "modules/EXAONE-4.0",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-4.5",
+      "path": "modules/EXAONE-4.5",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-Deep",
+      "path": "modules/EXAONE-Deep",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-Examples",
+      "path": "modules/EXAONE-Examples",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONE-Path-2.5",
+      "path": "modules/EXAONE-Path-2.5",
+      "has_readme": true
+    },
+    {
+      "slug": "EXAONEPath",
+      "path": "modules/EXAONEPath",
+      "has_readme": true
+    },
+    {
+      "slug": "K-EXAONE",
+      "path": "modules/K-EXAONE",
+      "has_readme": true
+    },
+    {
+      "slug": "KMMLU-Pro",
+      "path": "modules/KMMLU-Pro",
+      "has_readme": true
+    },
+    {
+      "slug": "KoMT-Bench",
+      "path": "modules/KoMT-Bench",
+      "has_readme": true
+    }
+  ],
+  "hard": [
+    "no-clone",
+    "no-weight-download",
+    "never-claim-EXAONE"
+  ],
+  "brand": {
+    "lab_ko": "금척",
+    "package": "geumcheok",
+    "agent": "2 degrees",
+    "note": "이도원 폐기 · 33°×2° 만남 · EXAONE 역할만 미러"
+  }
+}

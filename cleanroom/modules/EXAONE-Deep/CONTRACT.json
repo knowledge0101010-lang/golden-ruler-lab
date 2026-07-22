@@ -1,0 +1,34 @@
+{
+  "cleanroom_id": "cr/EXAONE-Deep",
+  "mirrors_public_role_of": "LG-AI-EXAONE/EXAONE-Deep",
+  "upstream_url": "https://github.com/LG-AI-EXAONE/EXAONE-Deep",
+  "upstream_stars": 400,
+  "upstream_language": null,
+  "bucket": "reasoning-model",
+  "ido_role": "curriculum-link",
+  "kind": "model-card",
+  "purpose": "Official repository for EXAONE Deep built by LG AI Research",
+  "adopt": "cleanroom-stub",
+  "copies_upstream_source": false,
+  "weights_forbidden": true,
+  "updated": "2026-07-22",
+  "engine_path": "engines/dispatch.py",
+  "title": "EXAONE-Deep",
+  "docs_read": {
+    "readme": "raw/EXAONE-Deep/README.md",
+    "readme_bytes": 12122,
+    "error": null
+  },
+  "cursor_grok": {
+    "identity": "Cursor Grok 4.5",
+    "default_host_language": "cangjie",
+    "mode": "cleanroom",
+    "never_claim": [
+      "EXAONE",
+      "LG AI",
+      "LG-AI-EXAONE"
+    ],
+    "ties_to": "vendor/claude-science/geumcheok (이도·twdo / 금척 / 2 degrees)"
+  },
+  "converted": "2026-07-22"
+}

@@ -1,0 +1,14 @@
+// 이도 (세종) · 2 degrees — .ido 예제 · 기본 호스트=cangjie
+// 키워드: 한국어 | 산술 기호는 C 유지
+
+기능 double(값: 정수): 정수 {
+    반환 값 * 2
+}
+
+메인() {
+    불변 name = "이도"
+    가변 score = 21
+    score = double(score)
+    출력("lang=${name}")
+    출력("score=${score}")
+}
