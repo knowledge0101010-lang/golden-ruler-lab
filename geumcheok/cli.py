@@ -25,7 +25,7 @@ def _cmd_motif(_: argparse.Namespace) -> int:
     for concept, rust, cj, ido in motif_table():
         print(f"{concept:8} {rust:12} {cj:12} {ido}")
     print()
-    print("Golden Ruler · 倉頡×Prometheus · 33°×2° · twdo/이도원/Freemason 아님 · host=cangjie")
+    print("Golden Ruler · 倉頡×Prometheus · 복희여와 규+자 · 이도원/EXAONE 사칭 아님 · host=cangjie")
     return 0
 
 
