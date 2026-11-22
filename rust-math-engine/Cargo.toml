@@ -1,0 +1,15 @@
+[package]
+name = "rust-math-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Pure-Rust (std only) mathematics engine: elementary, middle, high, undergraduate, graduate tiers"
+license = "MIT"
+
+[dependencies]
+
+[[bin]]
+name = "rust-math-engine"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
