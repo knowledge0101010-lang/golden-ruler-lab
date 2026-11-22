@@ -5,3 +5,6 @@ smoke_cjpm/target/
 smoke_cjpm/cjpm.lock
 *.egg-info/
 .DS_Store
+
+# Rust build output
+rust-math-engine/target/
