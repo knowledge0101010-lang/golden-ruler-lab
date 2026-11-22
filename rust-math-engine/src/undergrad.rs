@@ -140,11 +140,24 @@ impl Matrix {
         m
     }
 
+    /// 원소 절댓갑의 최댓값. 피벗·정규성 판정을 상대적으로 하기 위한 기준 크기다.
+    fn magnitude(&self) -> f64 {
+        self.data.iter().fold(0.0f64, |m, v| m.max(v.abs()))
+    }
+
     /// 부분 피벗 LU 분해로 행렬식 계산(특이행렬이면 0).
+    ///
+    /// 피벗이 그 행렬 자체의 크기에 비해 무시할 만큼 작을 때만 특이행렬로 본다.
+    /// 절대 임계값을 쓰면 단위 변환으로 계수만 작아진 가역행렬까지 0으로 오판한다.
     pub fn determinant(&self) -> f64 {
         assert_eq!(self.rows, self.cols, "정방행렬이 아닙니다");
         let n = self.rows;
         let mut a = self.data.clone();
+        let scale = self.magnitude();
+        if scale == 0.0 {
+            return 0.0;
+        }
+        let tol = 1e-14 * scale;
         let mut det = 1.0;
         for col in 0..n {
             let mut pivot = col;
@@ -153,7 +166,7 @@ impl Matrix {
                     pivot = r;
                 }
             }
-            if a[pivot * n + col].abs() < 1e-14 {
+            if a[pivot * n + col].abs() <= tol {
                 return 0.0;
             }
             if pivot != col {
@@ -179,6 +192,11 @@ impl Matrix {
             return None;
         }
         let n = self.rows;
+        let scale = self.magnitude();
+        if scale == 0.0 {
+            return None;
+        }
+        let tol = 1e-12 * scale;
         let mut aug = Matrix::zeros(n, 2 * n);
         for i in 0..n {
             for j in 0..n {
@@ -193,7 +211,7 @@ impl Matrix {
                     pivot = r;
                 }
             }
-            if aug.get(pivot, col).abs() < 1e-12 {
+            if aug.get(pivot, col).abs() <= tol {
                 return None;
             }
             if pivot != col {
@@ -237,6 +255,11 @@ impl Matrix {
             return None;
         }
         let n = self.rows;
+        let scale = self.magnitude();
+        if scale == 0.0 {
+            return None;
+        }
+        let tol = 1e-12 * scale;
         let mut a = self.clone();
         let mut perm: Vec<usize> = (0..n).collect();
         let mut l = Matrix::identity(n);
@@ -247,7 +270,7 @@ impl Matrix {
                     pivot = r;
                 }
             }
-            if a.get(pivot, col).abs() < 1e-12 {
+            if a.get(pivot, col).abs() <= tol {
                 return None;
             }
             if pivot != col {
@@ -289,6 +312,7 @@ impl Matrix {
             return None;
         }
         let pb: Vec<f64> = perm.iter().map(|i| b[*i]).collect();
+        let tol = 1e-12 * self.magnitude();
         let mut y = vec![0.0; n];
         for i in 0..n {
             let mut s = pb[i];
@@ -303,7 +327,7 @@ impl Matrix {
             for j in i + 1..n {
                 s -= u.get(i, j) * x[j];
             }
-            if u.get(i, i).abs() < 1e-14 {
+            if u.get(i, i).abs() <= tol {
                 return None;
             }
             x[i] = s / u.get(i, i);
@@ -331,7 +355,9 @@ impl Matrix {
                 }
             }
             let norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
-            if norm < 1e-12 {
+            let orig = (0..m).map(|i| self.get(i, j).powi(2)).sum::<f64>().sqrt();
+            // 정규성 판정도 원래 열의 크기에 상대적으로 한다.
+            if orig == 0.0 || norm <= 1e-12 * orig {
                 return None;
             }
             r.set(j, j, norm);
@@ -440,6 +466,18 @@ pub fn jacobi_eigen(a: &Matrix, tol: f64, max_iter: usize) -> Option<(Vec<f64>, 
             v.set(k, q, s * vkp + c * vkq);
         }
     }
+    // 반복 한도를 다 썼는데도 비대각 원소가 남아 있으면 수렴하지 않은 것이다.
+    // 이때 대각 원소를 고유값으로 돌려주면 복원 오차가 허용 범위를 넘는 값을 "성공"으로
+    // 넘기게 된다. 이미 대각행렬이거나 마지막 회전에서 수렴한 경우는 통과한다.
+    let mut largest_offdiag = 0.0f64;
+    for i in 0..n {
+        for j in i + 1..n {
+            largest_offdiag = largest_offdiag.max(m.get(i, j).abs());
+        }
+    }
+    if largest_offdiag > tol {
+        return None;
+    }
     let mut pairs: Vec<(f64, Vec<f64>)> = (0..n)
         .map(|i| (m.get(i, i), (0..n).map(|k| v.get(k, i)).collect::<Vec<f64>>()))
         .collect();
@@ -538,39 +576,62 @@ pub fn erf(x: f64) -> f64 {
 }
 
 /// 정규분포 확률밀도함수.
+///
+/// # Panics
+/// `sigma`가 0보다 큰 유한수가 아니면 패닉한다(0으로 나눈 `NaN`/`inf`가
+/// 조용히 계산을 타고 내려가는 것을 막는다).
 pub fn normal_pdf(x: f64, mu: f64, sigma: f64) -> f64 {
+    assert!(
+        sigma.is_finite() && sigma > 0.0,
+        "sigma는 0보다 큰 유한수여야 합니다: {sigma}"
+    );
     let z = (x - mu) / sigma;
     (-0.5 * z * z).exp() / (sigma * (2.0 * std::f64::consts::PI).sqrt())
 }
 
 /// 정규분포 누적분포함수.
+///
+/// # Panics
+/// `sigma`가 0보다 큰 유한수가 아니면 패닉한다.
 pub fn normal_cdf(x: f64, mu: f64, sigma: f64) -> f64 {
+    assert!(
+        sigma.is_finite() && sigma > 0.0,
+        "sigma는 0보다 큰 유한수여야 합니다: {sigma}"
+    );
     0.5 * (1.0 + erf((x - mu) / (sigma * std::f64::consts::SQRT_2)))
 }
 
 /// 최소제곱 단순 선형회귀 `y = a + b x`. `(a, b)`와 결정계수 `R^2`를 돌려준다.
+///
+/// 평균을 뺀(중심화한) 좌표로 분산과 공분산을 구한다. 원래 값의 제곱합과 합의 제곱을
+/// 빼는 방식은 값이 크고 서로 가까울 때 작은 차이가 반올림으로 사라져, 정확한 직선이
+/// 있어도 기울기를 구하지 못한다(예: 유닉스 타임스탬프를 x로 쓴 경우).
 pub fn least_squares_line(xs: &[f64], ys: &[f64]) -> Option<(f64, f64, f64)> {
     if xs.len() != ys.len() || xs.len() < 2 {
         return None;
     }
     let n = xs.len() as f64;
-    let sx: f64 = xs.iter().sum();
-    let sy: f64 = ys.iter().sum();
-    let sxx: f64 = xs.iter().map(|x| x * x).sum();
-    let sxy: f64 = xs.iter().zip(ys.iter()).map(|(x, y)| x * y).sum();
-    let denom = n * sxx - sx * sx;
-    if denom.abs() < 1e-15 {
-        return None;
+    let mean_x = xs.iter().sum::<f64>() / n;
+    let mean_y = ys.iter().sum::<f64>() / n;
+    let (mut sxx, mut sxy) = (0.0f64, 0.0f64);
+    for (x, y) in xs.iter().zip(ys.iter()) {
+        let dx = x - mean_x;
+        sxx += dx * dx;
+        sxy += dx * (y - mean_y);
     }
-    let b = (n * sxy - sx * sy) / denom;
-    let a = (sy - b * sx) / n;
-    let mean_y = sy / n;
-    let ss_tot: f64 = ys.iter().map(|y| (y - mean_y).powi(2)).sum();
-    let ss_res: f64 = xs
-        .iter()
-        .zip(ys.iter())
-        .map(|(x, y)| (y - (a + b * x)).powi(2))
-        .sum();
+    if sxx <= 0.0 {
+        return None; // 모든 x가 같으면 기울기를 정할 수 없다.
+    }
+    let b = sxy / sxx;
+    let a = mean_y - b * mean_x;
+    let (mut ss_tot, mut ss_res) = (0.0f64, 0.0f64);
+    for (x, y) in xs.iter().zip(ys.iter()) {
+        let dy = y - mean_y;
+        ss_tot += dy * dy;
+        // 잔차도 중심화한 좌표로 계산해 큰 `a`와의 상쇄를 피한다.
+        let res = dy - b * (x - mean_x);
+        ss_res += res * res;
+    }
     let r2 = if ss_tot == 0.0 { 1.0 } else { 1.0 - ss_res / ss_tot };
     Some((a, b, r2))
 }
@@ -759,5 +820,70 @@ mod tests {
     fn condition_number_of_identity_is_one() {
         let i = Matrix::identity(4);
         assert!(approx_eq(i.condition_number(), 1.0, 1e-9));
+    }
+
+    #[test]
+    fn tiny_scaled_invertible_matrix_is_not_treated_as_singular() {
+        // A = 1e-15 I, b = [1e-15, 2e-15] — 단위 변환으로 계수만 작아진 가역행렬
+        let s = 1e-15;
+        let a = m(&[&[s, 0.0], &[0.0, s]]);
+        let det = a.determinant();
+        assert!((det - s * s).abs() / (s * s) < 1e-9, "det = {det:e}");
+        let inv = a.inverse().expect("가역행렬의 역행렬이 있어야 합니다");
+        assert!((inv.get(0, 0) * s - 1.0).abs() < 1e-9, "inv = {}", inv.get(0, 0));
+        let x = a.solve(&[s, 2.0 * s]).expect("해가 있어야 합니다");
+        assert!(approx_eq(x[0], 1.0, 1e-9), "x = {x:?}");
+        assert!(approx_eq(x[1], 2.0, 1e-9), "x = {x:?}");
+        assert!(approx_eq(a.condition_number(), 1.0, 1e-9), "cond = {}", a.condition_number());
+        assert!(a.lu().is_some());
+        assert!(a.qr().is_some());
+        // 진짜 특이행렬은 여전히 걸러진다.
+        let sg = m(&[&[s, 2.0 * s], &[2.0 * s, 4.0 * s]]);
+        assert!(sg.inverse().is_none());
+        assert!(approx_eq(sg.determinant(), 0.0, 1e-30));
+    }
+
+    #[test]
+    fn jacobi_reports_non_convergence() {
+        // 회전 1회로는 1e-12 정밀도에 도달하지 못한다 → None
+        let a = m(&[&[2.0, 1.0, 1.0], &[1.0, 2.0, 0.0], &[1.0, 0.0, 2.0]]);
+        assert!(jacobi_eigen(&a, 1e-12, 1).is_none());
+        // 충분한 반복에서는 수렴해 Some
+        let (vals, _) = jacobi_eigen(&a, 1e-12, 200).unwrap();
+        assert!(approx_eq(vals[0], 2.0 - 2f64.sqrt(), 1e-9), "{vals:?}");
+        assert!(approx_eq(vals[1], 2.0, 1e-9), "{vals:?}");
+        assert!(approx_eq(vals[2], 2.0 + 2f64.sqrt(), 1e-9), "{vals:?}");
+        // 이미 대각행렬이면 회전 없이도 성공(반복 한도 0)
+        let d = m(&[&[3.0, 0.0], &[0.0, -1.0]]);
+        let (dv, _) = jacobi_eigen(&d, 1e-12, 0).unwrap();
+        assert!(approx_eq(dv[0], -1.0, 1e-12) && approx_eq(dv[1], 3.0, 1e-12));
+    }
+
+    #[test]
+    #[should_panic(expected = "sigma")]
+    fn normal_pdf_rejects_non_positive_sigma() {
+        let _ = normal_pdf(0.0, 0.0, 0.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "sigma")]
+    fn normal_cdf_rejects_non_positive_sigma() {
+        let _ = normal_cdf(0.0, 0.0, -1.0);
+    }
+
+    #[test]
+    fn least_squares_survives_large_x_offset() {
+        // 유닉스 타임스탬프처럼 큰 오프셋을 더해도 기울기·결정계수가 유지되어야 한다.
+        let xs = [1e9, 1e9 + 1.0, 1e9 + 2.0];
+        let ys = [1.0, 3.0, 5.0]; // y = 2x - (2e9 - 1)
+        let (a, b, r2) = least_squares_line(&xs, &ys).expect("정확한 직선이 있습니다");
+        assert!(approx_eq(b, 2.0, 1e-9), "b = {b}");
+        assert!(approx_eq(r2, 1.0, 1e-9), "r2 = {r2}");
+        assert!(approx_eq(a + b * xs[0], 1.0, 1e-6), "a = {a:e}");
+    }
+
+    #[test]
+    fn least_squares_rejects_constant_x() {
+        assert!(least_squares_line(&[2.0, 2.0, 2.0], &[1.0, 2.0, 3.0]).is_none());
     }
 }

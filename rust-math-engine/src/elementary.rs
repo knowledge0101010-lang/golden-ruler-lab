@@ -6,25 +6,44 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-/// `i128` 두 수의 최대공약수(절댓값 기준).
-fn gcd_i128(mut a: i128, mut b: i128) -> i128 {
-    a = a.abs();
-    b = b.abs();
+/// 음이 아닌 정수 `a`, `b`의 최대공약수. `gcd(0, 0) == 0`.
+///
+/// 부호 없는 값으로 계산하므로 `i128::MIN`의 절댓값에서도 넘치지 않는다.
+pub(crate) fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
     while b != 0 {
         let r = a % b;
         a = b;
         b = r;
     }
-    if a == 0 {
-        0
-    } else {
-        a
-    }
+    a
+}
+
+/// `i128` 두 수의 최대공약수(절댓값 기준).
+fn gcd_i128(a: i128, b: i128) -> i128 {
+    let g = gcd_u128(a.unsigned_abs(), b.unsigned_abs());
+    // gcd는 두 값의 최솟값을 넘지 않으므로 i128::MIN 두 개일 때만 넘칠 수 있다.
+    i128::try_from(g).unwrap_or(i128::MAX)
+}
+
+/// 유리수 연산의 중간값이 `i128`을 넘으면 조용히 감싸지 않고 즉시 실패한다.
+fn checked_mul(a: i128, b: i128) -> i128 {
+    a.checked_mul(b)
+        .expect("유리수 연산 오버플로: 중간값이 i128 범위를 넘었습니다")
+}
+
+fn checked_add(a: i128, b: i128) -> i128 {
+    a.checked_add(b)
+        .expect("유리수 연산 오버플로: 중간값이 i128 범위를 넘었습니다")
+}
+
+fn checked_sub(a: i128, b: i128) -> i128 {
+    a.checked_sub(b)
+        .expect("유리수 연산 오버플로: 중간값이 i128 범위를 넘었습니다")
 }
 
 /// 음이 아닌 정수 `a`, `b`의 최대공약수. `gcd(0, 0) == 0`.
 pub fn gcd(a: u64, b: u64) -> u64 {
-    gcd_i128(a as i128, b as i128) as u64
+    gcd_u128(a as u128, b as u128) as u64
 }
 
 /// 음이 아닌 정수 `a`, `b`의 최소공배수. 둘 중 하나가 0이면 0.
@@ -65,6 +84,11 @@ impl Rational {
     /// 정수를 유리수로 승격한다.
     pub fn from_int(n: i128) -> Rational {
         Rational { num: n, den: 1 }
+    }
+
+    /// 유리수 0.
+    pub fn zero() -> Rational {
+        Rational { num: 0, den: 1 }
     }
 
     pub fn num(&self) -> i128 {
@@ -140,36 +164,87 @@ impl PartialOrd for Rational {
     }
 }
 
+/// 곱셈 없이 두 유리수의 대소를 정확히 비교한다.
+///
+/// `a/b`와 `c/d`를 유클리드 나눗셈으로 나눠 정수부를 먼저 비교하고, 같으면
+/// 소수부를 역수로 뒤집어 다시 비교한다. 중간 곱이 없으므로 `i128` 범위를
+/// 넘는 값에서도 순서가 정확하다.
+fn cmp_magnitude(mut a: u128, mut b: u128, mut c: u128, mut d: u128) -> Ordering {
+    // 전제: `a`, `c`는 0 이상이고 `b`, `d`는 양수.
+    loop {
+        let (qa, ra) = (a / b, a % b);
+        let (qc, rc) = (c / d, c % d);
+        if qa != qc {
+            return qa.cmp(&qc);
+        }
+        match (ra == 0, rc == 0) {
+            (true, true) => return Ordering::Equal,
+            // 정수부가 같고 한쪽만 정확히 정수면, 소수부가 남은 쪽이 더 크다.
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            (false, false) => {}
+        }
+        // 남은 소수부 ra/b 와 rc/d 는 양수이므로, 역수 d/rc 와 b/ra 를 비교하면
+        // 순서가 뒤집히지 않는다(ra/b > rc/d ⇔ b/ra < d/rc).
+        let (old_b, old_d) = (b, d);
+        a = old_d;
+        b = rc;
+        c = old_b;
+        d = ra;
+    }
+}
+
 impl Ord for Rational {
     fn cmp(&self, other: &Self) -> Ordering {
-        (self.num * other.den).cmp(&(other.num * self.den))
+        match self.num.signum().cmp(&other.num.signum()) {
+            Ordering::Equal => {}
+            unequal => return unequal,
+        }
+        let ord = cmp_magnitude(
+            self.num.unsigned_abs(),
+            self.den as u128,
+            other.num.unsigned_abs(),
+            other.den as u128,
+        );
+        if self.num < 0 {
+            ord.reverse()
+        } else {
+            ord
+        }
     }
 }
 
 impl Add for Rational {
     type Output = Rational;
     fn add(self, rhs: Rational) -> Rational {
-        Rational::new(
-            self.num * rhs.den + rhs.num * self.den,
-            self.den * rhs.den,
-        )
+        // 기약분수끼리는 분모의 gcd만 공유하므로, 그 gcd로 먼저 나눠
+        // 분모의 곱이 i128을 넘지 않게 한다(예: 1/10^20 + 1/10^20).
+        let g = gcd_i128(self.den, rhs.den);
+        let (d1, d2) = (self.den / g, rhs.den / g);
+        let n = checked_add(checked_mul(self.num, d2), checked_mul(rhs.num, d1));
+        Rational::new(n, checked_mul(self.den, d2))
     }
 }
 
 impl Sub for Rational {
     type Output = Rational;
     fn sub(self, rhs: Rational) -> Rational {
-        Rational::new(
-            self.num * rhs.den - rhs.num * self.den,
-            self.den * rhs.den,
-        )
+        let g = gcd_i128(self.den, rhs.den);
+        let (d1, d2) = (self.den / g, rhs.den / g);
+        let n = checked_sub(checked_mul(self.num, d2), checked_mul(rhs.num, d1));
+        Rational::new(n, checked_mul(self.den, d2))
     }
 }
 
 impl Mul for Rational {
     type Output = Rational;
     fn mul(self, rhs: Rational) -> Rational {
-        Rational::new(self.num * rhs.num, self.den * rhs.den)
+        // 곱하기 전에 분자·분모를 교차 약분해 중간값을 줄인다.
+        let g1 = gcd_i128(self.num, rhs.den);
+        let g2 = gcd_i128(rhs.num, self.den);
+        let n = checked_mul(self.num / g1, rhs.num / g2);
+        let d = checked_mul(self.den / g2, rhs.den / g1);
+        Rational::new(n, d)
     }
 }
 
@@ -177,7 +252,12 @@ impl Div for Rational {
     type Output = Rational;
     fn div(self, rhs: Rational) -> Rational {
         assert!(!rhs.is_zero(), "유리수를 0으로 나눌 수 없습니다");
-        Rational::new(self.num * rhs.den, self.den * rhs.num)
+        // (a/b) / (c/d) = (a*d)/(b*c) — 역수 쪽과 교차 약분한다.
+        let g1 = gcd_i128(self.num, rhs.num);
+        let g2 = gcd_i128(self.den, rhs.den);
+        let n = checked_mul(self.num / g1, rhs.den / g2);
+        let d = checked_mul(self.den / g2, rhs.num / g1);
+        Rational::new(n, d)
     }
 }
 
@@ -341,5 +421,118 @@ mod tests {
     fn terminating_decimal_detection() {
         assert!(is_terminating_decimal(Rational::new(3, 8)));
         assert!(!is_terminating_decimal(Rational::new(1, 3)));
+    }
+
+    #[test]
+    fn rational_add_and_sub_do_not_overflow_on_huge_denominators() {
+        // 1/10^20 + 1/10^20 = 1/(5*10^19) — 분모를 그대로 곱하면 10^40으로 i128을 넘는다.
+        let big = 10i128.pow(20);
+        let a = Rational::new(1, big);
+        let s = a + a;
+        assert!(s.equals(&Rational::new(1, 5 * 10i128.pow(19))), "{s}");
+        // 1/10^20 - 1/(2*10^20) = 1/(2*10^20)
+        let d = Rational::new(1, big) - Rational::new(1, 2 * big);
+        assert!(d.equals(&Rational::new(1, 2 * big)), "{d}");
+    }
+
+    #[test]
+    fn rational_mul_and_div_cross_cancel_before_multiplying() {
+        let big = 10i128.pow(30);
+        let a = Rational::new(big, 7);
+        let b = Rational::new(7, big);
+        assert!((a * b).equals(&Rational::from_int(1)), "{}", a * b);
+        assert!((a / a).equals(&Rational::from_int(1)));
+        // (10^30/7) / (7/10^30) = 10^60/49 — 기약해도 i128을 넘으므로 명시적으로 실패해야 한다.
+        let r = std::panic::catch_unwind(|| a / b);
+        assert!(r.is_err(), "범위를 넘는 결과는 조용히 감싸지 않고 실패해야 합니다");
+    }
+
+    #[test]
+    #[should_panic(expected = "오버플로")]
+    fn rational_overflow_is_explicit_not_silent_wrapping() {
+        let big = 10i128.pow(20);
+        let a = Rational::new(big + 3, big);
+        let b = Rational::new(big + 1, big);
+        // 결과는 약 1이지만 기약분자·분모가 10^39 규모라 i128로 표현할 수 없다.
+        let _ = a * b;
+    }
+
+    #[test]
+    fn rational_ordering_is_exact_beyond_i128_products() {
+        // 비교를 위해 곱하면 (10^20+3)*10^20 이 i128을 넘는다.
+        let a = Rational::new(10i128.pow(20) + 3, 1);
+        let b = Rational::new(1, 10i128.pow(20));
+        assert!(a > b);
+        assert!(b < a);
+        // 10^30/3 과 10^30/7 의 대소
+        let c = Rational::new(10i128.pow(30), 3);
+        let d = Rational::new(10i128.pow(30), 7);
+        assert!(c > d);
+        assert_eq!(c.cmp(&c), Ordering::Equal);
+        // 음수 방향도 뒤집히지 않아야 한다.
+        assert!(Rational::new(-(10i128.pow(30)), 3) < Rational::new(-(10i128.pow(30)), 7));
+        assert!(Rational::new(-5, 3) < Rational::new(1, 10i128.pow(30)));
+    }
+
+    #[test]
+    fn gcd_handles_i128_min_magnitude() {
+        assert_eq!(gcd_i128(i128::MIN, 1), 1);
+        assert_eq!(gcd_i128(i128::MIN, i128::MIN), i128::MAX);
+    }
+
+    #[test]
+    fn rational_arithmetic_and_ordering_match_exact_cross_products() {
+        // 작은 범위 전수 대조: cmp/사칙연산 결과를 i128 교차곱(정확)과 비교한다.
+        let vals: Vec<i128> = (-6..=6).collect();
+        for &a in &vals {
+            for &b in &vals {
+                for &c in &vals {
+                    for &d in &vals {
+                        if b == 0 || d == 0 {
+                            continue;
+                        }
+                        let lhs = Rational::new(a, b);
+                        let rhs = Rational::new(c, d);
+                        // 기약분수(분모 > 0)로 정규화된 분자·분모로 정확한 기대값을 만든다.
+                        let (l1, d1) = (lhs.num(), lhs.den());
+                        let (l2, d2) = (rhs.num(), rhs.den());
+                        let expect = (l1 * d2).cmp(&(l2 * d1));
+                        assert_eq!(
+                            lhs.cmp(&rhs),
+                            expect,
+                            "{} vs {} 비교 오류",
+                            lhs,
+                            rhs
+                        );
+                        let s = lhs + rhs;
+                        assert!(
+                            s.equals(&Rational::new(l1 * d2 + l2 * d1, d1 * d2)),
+                            "{} + {} = {} 오류",
+                            lhs,
+                            rhs,
+                            s
+                        );
+                        let m = lhs * rhs;
+                        assert!(
+                            m.equals(&Rational::new(l1 * l2, d1 * d2)),
+                            "{} * {} = {} 오류",
+                            lhs,
+                            rhs,
+                            m
+                        );
+                        if l2 != 0 {
+                            let q = lhs / rhs;
+                            assert!(
+                                q.equals(&Rational::new(l1 * d2, d1 * l2)),
+                                "{} / {} = {} 오류",
+                                lhs,
+                                rhs,
+                                q
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 }

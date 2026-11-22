@@ -14,15 +14,16 @@
 
 ```bash
 cd rust-math-engine
-cargo test --verbose      # 단위 59 + 통합 13 = 72 테스트
-cargo run --release       # 5단계 대표 문제 실제 계산 결과 출력
+cargo test --release        # 단위 79 + 통합 13 = 92 테스트
+cargo run --release         # 5단계 대표 문제 실제 계산 결과 출력
 ```
 
 ## 검증 방식
 
-- `#[cfg(test)]` 단위 테스트 59개 + `tests/tier_integration.rs` 통합 테스트 13개.
+- `#[cfg(test)]` 단위 테스트 79개 + `tests/tier_integration.rs` 통합 테스트 13개.
 - 모든 검증은 실제 계산값과 해석해(또는 정확 유리수)를 비교한다. 예: `A = V Λ Vᵀ` 재구성, `P A = L U` 재구성, `Qᵀ Q = I`, 열방정식 해와 `e^{-π²t} sin(πx)` 비교, `cond∞(H₃) = 748`.
-- CI(`.github/workflows/rust-math-engine.yml`)가 `ubuntu-latest`에서 `cargo build` → `cargo test` → `cargo run --release`를 실제로 수행하고, 외부 크레이트 0개·Python 파일 0개를 강제 검사한다.
+- 위 명령은 로컬에서 직접 실행해 확인한다. **이 저장소에는 아직 GitHub Actions 워크플로가 커밋되어 있지 않다**(`.github/` 없음) — 머지 전 상태 점검에서 확인한 사실이며, 자동 CI를 붙일지는 별도 결정 사항이다.
+- 외부 크레이트 0개·Python 파일 0개는 `tests/tier_integration.rs::no_external_crate_dependency_in_manifest`가 검사한다.
 
 ## 제약
 

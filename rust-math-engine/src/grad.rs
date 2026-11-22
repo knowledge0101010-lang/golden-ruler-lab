@@ -38,15 +38,28 @@ fn backtracking<F: Fn(&[f64]) -> f64>(f: &F, x: &[f64], dir: &[f64], f0: f64, sl
     alpha
 }
 
-/// 최적화 결과: 해, 함수값, 반복 횟수.
+/// 최적화 결과: 해, 함수값, 반복 횟수, 수렴(기울기 기준) 여부.
+///
+/// `converged`는 기울기 노름이 `tol` 아래로 떨어졌을 때만 `true`다. 함수값이 더 이상
+/// 줄지 않아 멈춘 경우(`false`)와 실제 수렴을 구분해 호출자가 판단할 수 있게 한다.
 #[derive(Clone, Debug)]
 pub struct OptResult {
     pub x: Vec<f64>,
     pub f: f64,
     pub iterations: usize,
+    pub converged: bool,
+}
+
+/// 두 함수값 사이에 의미 있는 진전이 없었는지(기계 정밀도 수준의 정체).
+fn stalled(prev: f64, next: f64) -> bool {
+    let scale = prev.abs().max(next.abs()).max(1.0);
+    (next - prev).abs() <= 4.0 * f64::EPSILON * scale
 }
 
 /// Armijo 역추적을 쓰는 경사하강법.
+///
+/// `tol`은 수치 미분으로 추정한 기울기 노름의 하한과 비교된다. 추정 잡음은 대략
+/// `eps·|f|/h` 규모이므로, `tol`을 그보다 작게 주면 수렴 판정이 불가능해진다.
 pub fn gradient_descent<F: Fn(&[f64]) -> f64>(
     f: F,
     x0: &[f64],
@@ -56,10 +69,12 @@ pub fn gradient_descent<F: Fn(&[f64]) -> f64>(
     let mut x = x0.to_vec();
     let mut fx = f(&x);
     let mut iters = 0;
+    let mut converged = false;
     for it in 0..max_iter {
         iters = it + 1;
         let g = numerical_gradient(&f, &x);
         if norm(&g) < tol {
+            converged = true;
             break;
         }
         let dir: Vec<f64> = g.iter().map(|v| -v).collect();
@@ -68,16 +83,24 @@ pub fn gradient_descent<F: Fn(&[f64]) -> f64>(
             x[i] += alpha * dir[i];
         }
         let new_fx = f(&x);
-        if (new_fx - fx).abs() < tol * tol {
+        if stalled(fx, new_fx) {
             fx = new_fx;
             break;
         }
         fx = new_fx;
     }
-    OptResult { x, f: fx, iterations: iters }
+    OptResult {
+        x,
+        f: fx,
+        iterations: iters,
+        converged,
+    }
 }
 
 /// BFGS 준뉴턴법(역헤시안 근사 갱신) + Armijo 역추적.
+///
+/// 종료는 새 점의 기울기 노름으로 판정한다. 함수값 변화만으로 멈추면 목적함수를
+/// 작은 상수로 스케일했을 때 최소점에서 멀어도 멈춘다.
 pub fn bfgs<F: Fn(&[f64]) -> f64>(f: F, x0: &[f64], max_iter: usize, tol: f64) -> OptResult {
     let n = x0.len();
     let mut x = x0.to_vec();
@@ -88,9 +111,11 @@ pub fn bfgs<F: Fn(&[f64]) -> f64>(f: F, x0: &[f64], max_iter: usize, tol: f64) -
         h[i][i] = 1.0;
     }
     let mut iters = 0;
+    let mut converged = false;
     for it in 0..max_iter {
         iters = it + 1;
         if norm(&g) < tol {
+            converged = true;
             break;
         }
         // p = -H g
@@ -126,21 +151,32 @@ pub fn bfgs<F: Fn(&[f64]) -> f64>(f: F, x0: &[f64], max_iter: usize, tol: f64) -
                 }
             }
         }
+        let prev_fx = fx;
         x = x_new;
         g = g_new;
-        let new_fx = f(&x);
-        let converged = (new_fx - fx).abs() < tol;
-        fx = new_fx;
-        if converged {
+        fx = f(&x);
+        // 종료 판정은 함수값 변화가 아니라 새 점의 기울기로 한다. 목적함수를 작은 상수로
+        // 스케일하면 한 걸음의 함수값 변화가 tol보다 작아져, 최소점에서 멀어도 멈춘다.
+        if norm(&g) < tol {
+            converged = true;
+            break;
+        }
+        if stalled(prev_fx, fx) {
             break;
         }
     }
-    OptResult { x, f: fx, iterations: iters }
+    OptResult {
+        x,
+        f: fx,
+        iterations: iters,
+        converged,
+    }
 }
 
 /// 1D 열방정식 `u_t = alpha u_xx`의 명시적 유한차분 스텝.
 ///
-/// 경계는 디리클레 0(고정), 초기 배열의 양 끝은 경계값으로 취급한다.
+/// 경계는 디리클레 0(고정)이다. 매 스텝 `next[0]`과 `next[n-1]`을 명시적으로 0으로
+/// 두므로, 입력 배열의 양 끝에 0이 아닌 값이 있어도 경계값이 그대로 남지 않는다.
 /// CFL 조건 `alpha*dt/dx^2 <= 0.5`를 어기면 오류 문자열을 돌려준다.
 pub fn heat_1d(
     initial: &[f64],
@@ -169,6 +205,9 @@ pub fn heat_1d(
         for i in 1..n - 1 {
             next[i] = u[i] + r * (u[i + 1] - 2.0 * u[i] + u[i - 1]);
         }
+        // 경계 조건을 매 스텝 명시적으로 적용한다.
+        next[0] = 0.0;
+        next[n - 1] = 0.0;
         std::mem::swap(&mut u, &mut next);
     }
     Ok(u)
@@ -253,10 +292,22 @@ pub fn condition_number(m: &Matrix) -> f64 {
     m.condition_number()
 }
 
-/// 소프트맥스 확률분포를 log-sum-exp로 안정하게 계산한다.
+/// 소프트맥스 확률분포.
+///
+/// 최댓값을 빼고 지수값을 계산한 뒤 그 합으로 직접 나눈다. `log_sum_exp`를 거쳐
+/// 다시 빼면 큰 공통값에서 정규화 항이 반올림으로 사라져 합이 1을 넘는다
+/// (예: [1e16, 1e16]이 [1, 1]이 되는 문제).
 pub fn softmax(xs: &[f64]) -> Vec<f64> {
-    let lse = log_sum_exp(xs);
-    xs.iter().map(|x| (x - lse).exp()).collect()
+    if xs.is_empty() {
+        return Vec::new();
+    }
+    let m = xs.iter().fold(f64::NEG_INFINITY, |a, b| a.max(*b));
+    if !m.is_finite() {
+        return xs.iter().map(|_| f64::NAN).collect();
+    }
+    let exps: Vec<f64> = xs.iter().map(|x| (x - m).exp()).collect();
+    let sum: f64 = exps.iter().sum();
+    exps.iter().map(|e| e / sum).collect()
 }
 
 #[cfg(test)]
@@ -408,5 +459,50 @@ mod tests {
         let g = numerical_gradient(&f, &[2.0, 3.0]);
         assert!(approx_eq(g[0], 2.0 * 2.0 * 3.0, 1e-5));
         assert!(approx_eq(g[1], 4.0 + 3.0f64.cos(), 1e-5));
+    }
+
+    #[test]
+    fn bfgs_does_not_stop_early_on_scaled_objective() {
+        // f(x) = 1e-4 (x-1)^2 — 함수값 변화만 보면 첫 걸음 뒤 멈춰 x ≈ 0.0002 에 남는다.
+        let f = |x: &[f64]| 1e-4 * (x[0] - 1.0).powi(2);
+        let r = bfgs(f, &[0.0], 500, 1e-6);
+        assert!(approx_eq(r.x[0], 1.0, 1e-4), "x = {:?}, iters = {}", r.x, r.iterations);
+        assert!(r.converged, "기울기 기준으로 수렴했어야 합니다");
+    }
+
+    #[test]
+    fn heat_equation_enforces_zero_boundary() {
+        // 입력의 양 끝이 0이 아니어도 디리클레 0 경계가 매 스텝 적용되어야 한다.
+        let init = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+        let u = heat_1d(&init, 1.0, 0.25, 0.025, 50).unwrap();
+        assert_eq!(u[0], 0.0, "u[0] = {}", u[0]);
+        assert_eq!(u[4], 0.0, "u[4] = {}", u[4]);
+        let peak = u.iter().fold(0.0f64, |a, b| a.max(b.abs()));
+        assert!(peak < 1.0, "내부 값도 줄어들어야 합니다: {peak}");
+    }
+
+    #[test]
+    fn softmax_survives_large_common_offset() {
+        // 입력에 같은 값을 더해도 확률은 그대로여야 한다.
+        let s = softmax(&[1e16, 1e16]);
+        assert_eq!(s.len(), 2);
+        assert!(approx_eq(s[0], 0.5, 1e-12) && approx_eq(s[1], 0.5, 1e-12), "{s:?}");
+        assert!(approx_eq(s.iter().sum::<f64>(), 1.0, 1e-12));
+        let shifted = softmax(&[1.0 + 1e15, 2.0 + 1e15]);
+        let base = softmax(&[1.0, 2.0]);
+        for i in 0..2 {
+            assert!(approx_eq(shifted[i], base[i], 1e-9), "{shifted:?} vs {base:?}");
+        }
+    }
+
+    #[test]
+    fn optimizer_reports_convergence_flag() {
+        // 1D 이차함수는 Armijo 보폭으로 정확한 최소점에 도달한다 → 수렴 플래그가 참
+        let f = |x: &[f64]| (x[0] - 3.0).powi(2);
+        // 기울기는 수치 미분으로 추정하므로, 허용 오차는 그 잡음 바닥(약 eps·|f|/h)보다
+        // 커야 한다. 1e-8 정도는 잡음과 같아 수렴 판정이 불가능하다.
+        let r = gradient_descent(f, &[10.0], 1_000, 1e-6);
+        assert!(approx_eq(r.x[0], 3.0, 1e-7), "x = {:?}", r.x);
+        assert!(r.converged, "iters = {}", r.iterations);
     }
 }
